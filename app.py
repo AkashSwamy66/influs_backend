@@ -7,7 +7,8 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
-
+from flask import Flask, request, jsonify
+from instagram_service import InstagramService
 from dotenv import load_dotenv
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
@@ -422,6 +423,7 @@ def registration_response(account_id, role, email, creator_id=None):
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    instagram_service = InstagramService()
     database_path = Path(
         os.environ.get("CREATOR_DB_PATH", "instance/creators.sqlite3")
     )
@@ -473,6 +475,42 @@ def create_app(test_config=None):
 
     def unauthorized_response():
         return jsonify({"error": "Sign in to continue."}), 401
+
+    @app.get("/api/profile")
+    def get_instagram_profile():
+        print("Request args:", request.args)  # Debugging line
+        username = request.args.get("username", "").strip()
+
+        # Remove @ if user sends @username
+        username = username.lstrip("@")
+
+        if not username:
+            return jsonify({
+                "success": False,
+                "message": "username is required"
+            }), 400
+
+        try:
+            profile = instagram_service.get_profile(username)
+
+            if not profile:
+                return jsonify({
+                    "success": False,
+                    "message": "Instagram profile not found"
+                }), 404
+
+            return jsonify({
+                "success": True,
+                "data": profile
+            }), 200
+
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "message": "Failed to fetch Instagram profile",
+                "error": str(e)
+            }), 500
+
 
     @app.post("/api/auth/login")
     def login():
