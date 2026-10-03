@@ -4,3 +4,4 @@ python-dotenv>=1.0,<2.0
 PyJWT>=2.8,<3.0
 requests
 beautifulsoup4
+gunicorn>=22.0,<24.0
